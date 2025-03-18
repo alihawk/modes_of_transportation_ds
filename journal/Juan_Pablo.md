@@ -1,26 +1,17 @@
-# John Doe's Data Science Project Competition journal
+# Juan Osorio's Data Science Project Competition journal
 
-## February 2020 (8h)
+## March 2025 (9 hours)
+* 16. (2h): Reading the Market Analysis provided material, still not fully covered it.
+* 17. (3h): Playing with Folium maps and geopandas provided file.
+* 18. (4h): Downloaded the data provided by Medius, messed around in a Jupyter Notebook "first_approach"
 
-* 26. (2h): Watched XGBoost tutorials. I think XGBoost will be the best machine learning algorithm for our project.
-* 27. (2h): XGBoost implementation. I am using XGBoost from the xgboost python library.
-* 28. (4h): Data preparation for XGBoost and test runs. Before running initial XGBoost test I had to prepare data in an appropriate format. First test runs look promising!
+## April 2025 ()
 
-## March 2020 (2h)
-
-* 3. (2h): XGBoost parameter tunning. I tried to find the combination of parameter values that gives me the best results. I changed the values of the following parameters:
-
-  * eta (learning rate),
-  * gamma (minimum loss reduction required to make a further partition on a leaf node of the tree),
-  * max_depth (maximum depth of a tree).
-
-* 4. (2h): ...
-
-## April 2020 ([total hours for March])
+## May 2025 ()
 
 ...
 
-## May 2020 ([total hours for May])
+## June 2025 ()
 
 ...
 
