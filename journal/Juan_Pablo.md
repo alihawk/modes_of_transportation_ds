@@ -6,7 +6,9 @@
 * 18. (4h): Downloaded the data provided by Medius, messed around in a Jupyter Notebook "first_approach"
 
 ## April 2025 ()
-
+* 8. (4h): Stay points lectures.
+* 17. (2h): Discretized the map of Slovenia in bins for analysis purpose. 
+* 18. (4h): 
 ## May 2025 ()
 
 ...
