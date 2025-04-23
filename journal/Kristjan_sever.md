@@ -1,30 +1,22 @@
-# John Doe's Data Science Project Competition journal
+# Kristjan Sever's Data Science Project Competition journal
 
-## February 2020 (8h)
+## March 2025 (12h)
 
-* 26. (2h): Watched XGBoost tutorials. I think XGBoost will be the best machine learning algorithm for our project.
-* 27. (2h): XGBoost implementation. I am using XGBoost from the xgboost python library.
-* 28. (4h): Data preparation for XGBoost and test runs. Before running initial XGBoost test I had to prepare data in an appropriate format. First test runs look promising!
+* 16. (5h): Playing with Folium maps and geopandas provided file.
+* 19. (2h): Reading the Market Analysis provided material, still not fully covered it.
+* 20. (5h): Playing with data, Folium maps and reading documentation for libraries and data.
 
-## March 2020 (2h)
+## April 2025 (12h)
+* 5. (4h): Played with Medius Data a bit, made some initial distributions.
+* 22. (4h): Read through OSRM API, which could prove useful for calculating how probable some point is based on distance from roads.
+* 23. (4h): Start working on getting probabilities of each point, so we could use some threshold to filter outliers..
+...
 
-* 3. (2h): XGBoost parameter tunning. I tried to find the combination of parameter values that gives me the best results. I changed the values of the following parameters:
-
-  * eta (learning rate),
-  * gamma (minimum loss reduction required to make a further partition on a leaf node of the tree),
-  * max_depth (maximum depth of a tree).
-
-* 4. (2h): ...
-
-## April 2020 ([total hours for March])
+## May 2025 ([total hours for May])
 
 ...
 
-## May 2020 ([total hours for May])
-
-...
-
-## June 2020 ([total hours for June])
+## June 2025 ([total hours for June])
 
 ...
 
