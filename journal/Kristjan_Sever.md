@@ -10,6 +10,7 @@
 * 5. (4h): Played with Medius Data a bit, made some initial distributions.
 * 22. (4h): Read through OSRM API, which could prove useful for calculating how probable some point is based on distance from roads.
 * 23. (4h): Start working on getting probabilities of each point, so we could use some threshold to filter outliers..
+* 23. 
 ...
 
 ## May 2025 ([total hours for May])
@@ -21,3 +22,16 @@
 ...
 
 ## Total: [total sum of hours]
+
+
+
+## Meetings: (4.5h)
+* 4. 3.  (1h) Meeting with the guys, getting to know eachother, what we know, what we dont etc.
+* 25. 3.  (0.5h) Weekly
+* 11. 3.  (1h) Deep dive  
+* 18. 3.  (0.5h) Weekly
+* 25. 3.  (0.5h) Weekly
+* 1. 4.  (0.5h) Weekly
+* 8. 4.  (0.5h) Weekly
+* 15. 3.  (1h) Meeting with Tomaz
+* 22. 4.  (0.5h) Weekly
