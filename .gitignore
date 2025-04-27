@@ -1,0 +1,13 @@
+# Ignore IDE files
+.idea/
+
+# Ignore parquet files
+*.parquet
+
+# Ignore datasets
+training_set/
+validation_set/
+Europe towers.csv
+
+# Ignore empty files
+empty.txt
