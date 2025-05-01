@@ -1,0 +1,14 @@
+name: modes
+channels:
+  - conda-forge
+dependencies:
+  - pandas
+  - numpy
+  - dask
+  - geopandas
+  - shapely
+  - folium
+  - pyarrow
+  - fastparquet
+  - tqdm
+  - geopy
