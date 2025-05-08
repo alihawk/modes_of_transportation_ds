@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Map Pin Creator with Multiple Modes</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .controls { 
+            margin-bottom: 10px;
+        }
+        .mode-selector { 
+            margin-bottom: 10px; 
+        }
+        .instructions { 
+            background: #f8f8f8; 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin-bottom: 10px;
+            display: none;
+        }
+        .instructions.active { 
+            display: block; 
+        }
+        .map-container {
+            display: flex;
+            height: 75vh;
+            min-height: 600px;
+            width: 100%;
+            flex-grow: 1;
+        }
+        #map { 
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #segment-list {
+            width: 250px;
+            margin-left: 10px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .segment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            margin-bottom: 5px;
+            background-color: #f9f9f9;
+            border-radius: 3px;
+            border-left: 4px solid #ddd;
+        }
+        .segment-item.corridor {
+            border-left-color: #ff3388;
+        }
+        .segment-item.line {
+            border-left-color: #33cc33;
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ff5555;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            padding: 0 5px;
+        }
+        .delete-btn:hover {
+            color: #ff0000;
+        }
+        .list-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+        #status {
+            margin-top: 10px;
+            font-style: italic;
+        }
+        button {
+            padding: 6px 12px;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <div class="mode-selector">
+            <label><input type="radio" name="mode" value="pin" checked> Single Pin Mode</label>
+            <label><input type="radio" name="mode" value="corridor"> Corridor Mode</label>
+            <label><input type="radio" name="mode" value="line"> Line Mode</label>
+        </div>
+        <div id="pin-instructions" class="instructions active">
+            Click anywhere on the map to place a pin.
+        </div>
+        <div id="corridor-instructions" class="instructions">
+            Move cursor to starting point and press <kbd>S</kbd> to set start point.<br>
+            Move cursor to end point and press <kbd>E</kbd> to complete the corridor.<br>
+            Press <kbd>Esc</kbd> to cancel corridor creation.
+        </div>
+        <div id="line-instructions" class="instructions">
+            Click to add points to your line. Press <kbd>E</kbd> to complete the line.<br>
+            Press <kbd>Esc</kbd> to cancel the current line.
+        </div>
+        <button id="export">Export as GeoJSON</button>
+        <button id="clear">Clear All</button>
+        <div id="status"></div>
+    </div>
+    <div class="map-container">
+        <div id="map"></div>
+        <div id="segment-list">
+            <div class="list-title">Saved Segments</div>
+            <div id="segment-items"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([46.05, 14.50], 13); // Ljubljana center
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Storage for markers with metadata
+        const markers = [];
+        const lines = [];
+        const corridors = [];
+        const statusElement = document.getElementById('status');
+        const segmentItemsContainer = document.getElementById('segment-items');
+        
+        // State variables
+        let singlePinCounter = 1;
+        let corridorCounter = 1;
+        let lineCounter = 1;
+        let currentLinePoints = [];
+        let currentLineMarkers = [];
+        let currentLine = null;
+        let corridorStartPoint = null;
+        let currentMousePosition = null;
+        let startMarker = null;
+        let rectanglePreview = null;
+
+        // Get current mode
+        function getMode() {
+            return document.querySelector('input[name="mode"]:checked').value;
+        }
+
+        // Update instructions based on mode
+        document.querySelectorAll('input[name="mode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                document.querySelectorAll('.instructions').forEach(el => el.classList.remove('active'));
+                document.getElementById(`${this.value}-instructions`).classList.add('active');
+                
+                if (this.value !== 'line') {
+                    resetLineState();
+                }
+                
+                if (this.value !== 'corridor') {
+                    resetCorridorState();
+                }
+                
+                statusElement.textContent = '';
+            });
+        });
+
+        // Update segment list display
+        function updateSegmentList() {
+            // Clear existing items
+            segmentItemsContainer.innerHTML = '';
+            
+            // Add corridor items
+            corridors.forEach((corridor, index) => {
+                const item = document.createElement('div');
+                item.className = 'segment-item corridor';
+                item.innerHTML = `
+                    <span>${corridor.name}</span>
+                    <button class="delete-btn" data-type="corridor" data-index="${index}">×</button>
+                `;
+                segmentItemsContainer.appendChild(item);
+            });
+            
+            // Add line items
+            lines.forEach((line, index) => {
+                const item = document.createElement('div');
+                item.className = 'segment-item line';
+                item.innerHTML = `
+                    <span>${line.name}</span>
+                    <button class="delete-btn" data-type="line" data-index="${index}">×</button>
+                `;
+                segmentItemsContainer.appendChild(item);
+            });
+            
+            // Show a message if no segments
+            if (corridors.length === 0 && lines.length === 0) {
+                segmentItemsContainer.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No segments yet</div>';
+            }
+        }
+
+        // Delete a segment
+        function deleteSegment(type, index) {
+            if (type === 'corridor') {
+                const corridor = corridors[index];
+                
+                // Remove associated markers
+                const corridorId = corridor.id;
+                const markersToRemove = markers.filter(m => 
+                    m.info.type === 'corridor' && m.info.corridorId === corridorId
+                );
+                
+                markersToRemove.forEach(m => {
+                    map.removeLayer(m.marker);
+                    // Remove from markers array
+                    const markerIndex = markers.indexOf(m);
+                    if (markerIndex !== -1) {
+                        markers.splice(markerIndex, 1);
+                    }
+                });
+                
+                // Remove rectangle
+                map.removeLayer(corridor.rectangle);
+                
+                // Remove from corridors array
+                corridors.splice(index, 1);
+                
+            } else if (type === 'line') {
+                const line = lines[index];
+                
+                // Remove associated markers
+                const lineId = line.id;
+                const markersToRemove = markers.filter(m => 
+                    m.info.type === 'line' && m.info.lineId === lineId
+                );
+                
+                markersToRemove.forEach(m => {
+                    map.removeLayer(m.marker);
+                    // Remove from markers array
+                    const markerIndex = markers.indexOf(m);
+                    if (markerIndex !== -1) {
+                        markers.splice(markerIndex, 1);
+                    }
+                });
+                
+                // Remove polyline
+                map.removeLayer(line.polyline);
+                
+                // Remove from lines array
+                lines.splice(index, 1);
+            }
+            
+            // Update the segment list
+            updateSegmentList();
+            statusElement.textContent = `${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully.`;
+        }
+
+        // Event delegation for delete buttons
+        document.getElementById('segment-list').addEventListener('click', function(e) {
+            if (e.target.classList.contains('delete-btn')) {
+                const type = e.target.dataset.type;
+                const index = parseInt(e.target.dataset.index);
+                deleteSegment(type, index);
+            }
+        });
+
+        // Track mouse position
+        map.on('mousemove', function(e) {
+            currentMousePosition = e.latlng;
+            
+            // Update preview rectangle if we have a start point
+            if (corridorStartPoint && getMode() === 'corridor') {
+                updateRectanglePreview();
+            }
+            
+            // Update line preview if we have points
+            if (currentLinePoints.length > 0 && getMode() === 'line') {
+                updateLinePreview();
+            }
+        });
+
+        // Handle click events
+        map.on('click', function(e) {
+            const mode = getMode();
+            
+            if (mode === 'pin') {
+                // Single pin mode
+                const marker = L.marker(e.latlng).addTo(map);
+                const pinInfo = {
+                    type: 'single',
+                    id: `pin_${singlePinCounter}`,
+                    position: 'standalone'
+                };
+                
+                marker.bindPopup(`Pin ${singlePinCounter}: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`);
+                markers.push({
+                    marker: marker,
+                    info: pinInfo
+                });
+                
+                singlePinCounter++;
+            } 
+            else if (mode === 'line') {
+                // Line mode - add point
+                addLinePoint(e.latlng);
+            }
+        });
+
+        // Line mode functions
+        function addLinePoint(latlng) {
+            // Add marker for the point
+            const pointMarker = L.marker(latlng).addTo(map);
+            const pointNumber = currentLinePoints.length + 1;
+            pointMarker.bindPopup(`Line point ${pointNumber}: ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`);
+            
+            // Store the point and marker
+            currentLinePoints.push(latlng);
+            currentLineMarkers.push(pointMarker);
+            
+            // Update the line on the map
+            updateLinePreview();
+            
+            statusElement.textContent = `Added point ${pointNumber} to line. Click to add more points or press E to complete.`;
+        }
+
+        function updateLinePreview() {
+            // Remove existing line preview
+            if (currentLine) {
+                map.removeLayer(currentLine);
+            }
+            
+            // Create an array of all points plus the current mouse position
+            const previewPoints = [...currentLinePoints];
+            
+            if (currentMousePosition && currentLinePoints.length > 0) {
+                previewPoints.push(currentMousePosition);
+            }
+            
+            // Draw the line
+            currentLine = L.polyline(previewPoints, {
+                color: '#3388ff',
+                weight: 3,
+                dashArray: '5, 10',
+                opacity: 0.7
+            }).addTo(map);
+        }
+
+        function completeCurrentLine() {
+            if (currentLinePoints.length < 2) {
+                statusElement.textContent = "A line needs at least 2 points. Add more points or cancel.";
+                return;
+            }
+            
+            // Prompt for line name
+            let lineName = prompt(`Enter a name for line #${lineCounter} (or leave blank for default):`, `Line ${lineCounter}`);
+            if (lineName === null || lineName.trim() === '') {
+                lineName = `Line ${lineCounter}`;
+            }
+            
+            // Remove preview line
+            if (currentLine) {
+                map.removeLayer(currentLine);
+            }
+            
+            // Create permanent line
+            const permanentLine = L.polyline(currentLinePoints, {
+                color: '#33cc33',
+                weight: 4,
+                opacity: 0.8
+            }).addTo(map);
+            
+            // Add tooltip with line name
+            permanentLine.bindTooltip(lineName, {
+                permanent: true,
+                direction: 'center',
+                className: 'line-label'
+            });
+            
+            // Save line data
+            const lineInfo = {
+                id: `line_${lineCounter}`,
+                name: lineName,
+                points: currentLinePoints.map((point, idx) => {
+                    return {
+                        latlng: point,
+                        marker: currentLineMarkers[idx],
+                        position: idx + 1
+                    };
+                }),
+                polyline: permanentLine
+            };
+            
+            lines.push(lineInfo);
+            
+            // Update markers info to connect them to the line
+            currentLineMarkers.forEach((marker, idx) => {
+                const pinInfo = {
+                    type: 'line',
+                    lineId: `line_${lineCounter}`,
+                    lineName: lineName,
+                    position: idx + 1,
+                    totalPoints: currentLinePoints.length
+                };
+                
+                markers.push({
+                    marker: marker,
+                    info: pinInfo
+                });
+            });
+            
+            statusElement.textContent = `Line "${lineName}" created with ${currentLinePoints.length} points.`;
+            lineCounter++;
+            
+            // Update segment list
+            updateSegmentList();
+            
+            // Reset line state
+            resetLineState();
+        }
+
+        function resetLineState() {
+            if (currentLine) {
+                map.removeLayer(currentLine);
+                currentLine = null;
+            }
+            
+            currentLinePoints = [];
+            currentLineMarkers = [];
+        }
+
+        // Corridor mode functions
+        function updateRectanglePreview() {
+            if (rectanglePreview) {
+                map.removeLayer(rectanglePreview);
+            }
+            
+            rectanglePreview = L.rectangle([
+                [corridorStartPoint.lat, corridorStartPoint.lng],
+                [currentMousePosition.lat, currentMousePosition.lng]
+            ], {
+                color: "#3388ff",
+                weight: 2,
+                fillOpacity: 0.2
+            }).addTo(map);
+        }
+
+        function createCorridor(startPoint, endPoint) {
+            // Prompt for corridor name
+            let corridorName = prompt(`Enter a name for corridor #${corridorCounter} (or leave blank for default):`, `Corridor ${corridorCounter}`);
+            if (corridorName === null || corridorName.trim() === '') {
+                corridorName = `Corridor ${corridorCounter}`;
+            }
+            
+            // Create four corners
+            const corners = [
+                [startPoint.lat, startPoint.lng],    // Start corner
+                [startPoint.lat, endPoint.lng],      // Diagonal 1
+                [endPoint.lat, endPoint.lng],        // End corner
+                [endPoint.lat, startPoint.lng]       // Diagonal 2
+            ];
+            
+            // Define corner positions
+            const positions = ['start', 'diagonal1', 'end', 'diagonal2'];
+            
+            // Remove preview elements
+            if (startMarker) {
+                map.removeLayer(startMarker);
+                startMarker = null;
+            }
+            
+            if (rectanglePreview) {
+                map.removeLayer(rectanglePreview);
+                rectanglePreview = null;
+            }
+            
+            const corridorId = `corridor_${corridorCounter}`;
+            const cornerMarkers = [];
+            
+            // Create a marker for each corner
+            corners.forEach((corner, index) => {
+                const cornerLatLng = L.latLng(corner[0], corner[1]);
+                const marker = L.marker(cornerLatLng).addTo(map);
+                
+                const pinInfo = {
+                    type: 'corridor',
+                    corridorId: corridorId,
+                    corridorName: corridorName,
+                    position: positions[index]
+                };
+                
+                const positionName = index === 0 ? "Start" : 
+                                     index === 2 ? "End" : 
+                                     `Diagonal ${index}`;
+                
+                const popupContent = `${corridorName} - ${positionName}: ${cornerLatLng.lat.toFixed(5)}, ${cornerLatLng.lng.toFixed(5)}`;
+                marker.bindPopup(popupContent);
+                
+                cornerMarkers.push(marker);
+                markers.push({
+                    marker: marker,
+                    info: pinInfo
+                });
+            });
+            
+            // Draw the rectangle permanently
+            const rectangle = L.rectangle(corners, {
+                color: "#ff3388",
+                weight: 2,
+                fillOpacity: 0.1
+            }).addTo(map);
+            
+            // Add tooltip to rectangle showing corridor name
+            rectangle.bindTooltip(corridorName, {
+                permanent: true,
+                direction: 'center',
+                className: 'corridor-label'
+            });
+            
+            // Store corridor info
+            corridors.push({
+                id: corridorId,
+                name: corridorName,
+                corners: corners,
+                markers: cornerMarkers,
+                rectangle: rectangle
+            });
+            
+            // Update segment list
+            updateSegmentList();
+            
+            statusElement.textContent = `Corridor "${corridorName}" created. Ready for a new one.`;
+            corridorCounter++;
+        }
+
+        function resetCorridorState() {
+            corridorStartPoint = null;
+            
+            if (startMarker) {
+                map.removeLayer(startMarker);
+                startMarker = null;
+            }
+            
+            if (rectanglePreview) {
+                map.removeLayer(rectanglePreview);
+                rectanglePreview = null;
+            }
+        }
+
+        // Handle keyboard events
+        document.addEventListener('keydown', function(e) {
+            const mode = getMode();
+            
+            if (mode === 'corridor') {
+                if (e.key.toLowerCase() === 's' && currentMousePosition) {
+                    // Set start point
+                    resetCorridorState();
+                    corridorStartPoint = currentMousePosition;
+                    startMarker = L.marker(corridorStartPoint).addTo(map);
+                    statusElement.textContent = 'Start point set. Move to end point and press E, or press Esc to cancel.';
+                } 
+                else if (e.key.toLowerCase() === 'e' && corridorStartPoint && currentMousePosition) {
+                    // Set end point and create corridor
+                    const endPoint = currentMousePosition;
+                    createCorridor(corridorStartPoint, endPoint);
+                    corridorStartPoint = null;
+                }
+                else if (e.key === 'Escape' && corridorStartPoint) {
+                    // Cancel corridor creation
+                    resetCorridorState();
+                    statusElement.textContent = 'Corridor creation cancelled. Press S to start a new one.';
+                }
+            }
+            else if (mode === 'line') {
+                if (e.key.toLowerCase() === 'e' && currentLinePoints.length > 0) {
+                    // Complete the current line
+                    completeCurrentLine();
+                }
+                else if (e.key === 'Escape' && currentLinePoints.length > 0) {
+                    // Cancel line creation
+                    currentLineMarkers.forEach(marker => map.removeLayer(marker));
+                    resetLineState();
+                    statusElement.textContent = 'Line creation cancelled.';
+                }
+            }
+        });
+
+        // Export all data as GeoJSON
+        document.getElementById('export').addEventListener('click', function() {
+            const features = [];
+            
+            // Add all markers as point features
+            markers.forEach((item) => {
+                const marker = item.marker;
+                const info = item.info;
+                const latlng = marker.getLatLng();
+                
+                let properties = {
+                    id: info.type === 'single' ? info.id : 
+                        info.type === 'corridor' ? `${info.corridorId}_${info.position}` : 
+                        `${info.lineId}_point_${info.position}`,
+                    type: info.type
+                };
+                
+                if (info.type === 'corridor') {
+                    properties.corridorName = info.corridorName;
+                    properties.corridorId = info.corridorId;
+                    properties.position = info.position;
+                } else if (info.type === 'line') {
+                    properties.lineName = info.lineName;
+                    properties.lineId = info.lineId;
+                    properties.position = info.position;
+                    properties.totalPoints = info.totalPoints;
+                }
+                
+                properties.description = `Location: ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
+                
+                features.push({
+                    type: "Feature",
+                    properties: properties,
+                    geometry: {
+                        type: "Point",
+                        coordinates: [latlng.lng, latlng.lat]
+                    }
+                });
+            });
+            
+            // Add lines as LineString features
+            lines.forEach((line) => {
+                const lineCoordinates = line.points.map(point => [point.latlng.lng, point.latlng.lat]);
+                
+                features.push({
+                    type: "Feature",
+                    properties: {
+                        id: line.id,
+                        type: "line",
+                        name: line.name,
+                        pointCount: line.points.length
+                    },
+                    geometry: {
+                        type: "LineString",
+                        coordinates: lineCoordinates
+                    }
+                });
+            });
+            
+            const geoJSON = {
+                type: "FeatureCollection",
+                features: features
+            };
+            
+            // Create download link
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(geoJSON, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "map_data.geojson");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        });
+
+        // Clear all data
+        document.getElementById('clear').addEventListener('click', function() {
+            // Clear pins
+            markers.forEach(item => map.removeLayer(item.marker));
+            markers.length = 0;
+            
+            // Clear lines
+            lines.forEach(line => {
+                map.removeLayer(line.polyline);
+            });
+            lines.length = 0;
+            
+            // Clear corridors
+            corridors.forEach(corridor => {
+                map.removeLayer(corridor.rectangle);
+            });
+            corridors.length = 0;
+            
+            // Remove all rectangles and other shapes
+            map.eachLayer(layer => {
+                if ((layer instanceof L.Rectangle && layer !== rectanglePreview) || 
+                    (layer instanceof L.Polyline && layer !== currentLine)) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            resetCorridorState();
+            resetLineState();
+            updateSegmentList();
+            statusElement.textContent = 'All data cleared.';
+        });
+        
+        // Initialize the segment list
+        updateSegmentList();
+    </script>
+</body>
+</html>
