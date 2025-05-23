@@ -1,0 +1,4 @@
+[INFO] Processing TARGET_DAY=20230329, PART_ID=5
+2025-04-28 06:14:41,043 [INFO] Loading data_split/20230329/part_5.parquet
+2025-04-28 06:14:41,296 [INFO] Applying denoise to part 5 with map_partitions
+2025-04-28 06:59:28,415 [INFO] Saved cleaned file to denoised_output/20230329/part_5.parquet
