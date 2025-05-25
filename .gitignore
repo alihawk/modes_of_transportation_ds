@@ -1,3 +1,6 @@
 data/
 sampled_data/
 *.ipynb
+*.parquet
+cache/
+.idea/
