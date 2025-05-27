@@ -3,3 +3,5 @@ sampled_data/
 *.ipynb
 data_denoised/
 data_binned/
+*.sif
+*.log

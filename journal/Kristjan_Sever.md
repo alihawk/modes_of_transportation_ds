@@ -1,6 +1,7 @@
 # Kristjan Sever's Data Science Project Competition journal
 
-## March 2025 (14h)
+## March 2025 (15h)
+* 4. (1h): Getting to know eachother, our strengths and weaknesses.
 * 16. (5h): Playing with Folium maps and geopandas provided file.
 * 17. (4h): Reading the market Analysis paper provided by Tomaz.
 * 20. (5h): Playing with data and reading documentation for libraries and data.
@@ -17,11 +18,16 @@
 * 9. (4h): Get slovenian railway and road geojsons.
 * 10. (10h): Visualize the geojsons a bit, think about how this could prove useful to the project (by getting more accurate distributions of modes of transportation across the specified bins).
 * 11. (8h): Clean up the repo a bit. Work on transition matrix a bit. Fixing issue with .parquet files not opening as they should on my local machine. Talk with Juan about splitting the .parquets a bit to allow local work.
+* 13. (2h): Meeting with Ali an Juan, discussing about cellphone towers, how to denoise it, what else we could do etc.
 * 18. (5h): Fix issues with HPC Arnes not working for me, issues with Anaconda when running the nodes.
 * 19. (6h): Create a workflow for opening Jupyter notebooks from Arnes HPC locally in my browser, learn about how it works and make it work.
 * 20. (5h): Work on transition matrix logic, initial approach was to loop through all the rows and count the transitions. This was really slow so I searched for ways to optimize it
 * 21. (8h): Speed up the process by processing it sequentially, this allowed me to play around with the data a bit, check which kind of rules we can implement and how much data would the rules remove from the whole set. I also played around with how to save the files, I had some issues with Arnes again, because I didnt have enough memory so i needed to solve that as well.
 * 22. (8h): Think about and try it in the Jupyter notebook how to make a good rule for transitions. I had issues with users that had really sparse data, how to consider their movement. I didnt yet manage to solve it. Start writting report, a rough outline.
+* 23. (5h): Watch videos and read material on Markov chains, on Monte Carlo method. Think about how it could be useful for our project.
+* 24. (4h): Test some Markov Chains code online, get a feel for it.
+* 25. (3h): Meeting with Ali an Juan, discuss about transition matrices, the rule for building it. Discuss what to do with Markov Chains. Think about how we could augment the pipeline to allow us to finetune parameters (tjough we dont have good validation set).
+* 26. (5h): Work on finishing the project, check current work, write a bit of report.
 ...
 
 ## June 2025 ([total hours for June])
@@ -32,7 +38,7 @@
 
 
 
-## Meetings: (4.5h)
+## Weeklies: (8h)
 * 4. 3.  (1h) Meeting with the guys, getting to know eachother, what we know, what we dont etc.
 * 25. 3.  (0.5h) Weekly
 * 11. 3.  (1h) Deep dive  
@@ -42,3 +48,7 @@
 * 8. 4.  (0.5h) Weekly
 * 15. 3.  (1h) Meeting with Tomaz
 * 22. 4.  (0.5h) Weekly
+* 6. 5.  (0.5h) Weekly
+* 13. 5.  (0.5h) Weekly
+* 19. 5.  (0.5h) Weekly
+* 26. 5.  (0.5h) Weekly
