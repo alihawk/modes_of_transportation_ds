@@ -7,7 +7,7 @@
 * 22. (3 h): Benchmarked spatial‐only denoising heuristics (parameter sweep, runtime profiling) (2 h); weekly standup & team sync (1 h)  
 
 ## March 2025 (40 h)
-* 1. (8 h): Spatial‐only DBSCAN exploration—tuned eps/min_samples, evaluated cluster purity with hand‐labeled stops (6 h); weekly standup & team sync (2 h)  
+ 1. (8 h): Spatial‐only DBSCAN exploration—tuned eps/min_samples, evaluated cluster purity with hand‐labeled stops (6 h); weekly standup & team sync (2 h)  
 * 8. (8 h): Integrated cell‐tower distance outlier removal—vectorized KDTree queries, optimized float32 casts (6 h); weekly standup & team sync (2 h)  
 * 15. (8 h): Speed distribution analysis—histograms per zone, derived walking/driving thresholds (6 h); weekly standup & team sync (2 h)  
 * 22. (8 h): Zone‐aware clustering experiments—per‐zone DBSCAN vs. GMM, eps calibration by tower density (6 h); weekly standup & team sync (2 h)  
