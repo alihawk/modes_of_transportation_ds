@@ -11,7 +11,6 @@
 * 5. (5h): Played with Medius Data a bit, made some initial distributions.
 * 22. (5h): Read through OSRM API, which could prove useful for calculating how probable some point is based on distance from roads.
 * 23. (5h): Start working on getting probabilities of each point, so we could use some threshold to filter outliers..
-...
 
 ## May 2025 (103h)
 * 2. (8h): Login to Arnes Cluster, set OTP, try to read from Juans home directory, and try to find a workaround since it was not possible. Try to set up a conda environment locally. Finally decide to just set the Singularity containers with desired conda environment. Try to get Jupyter notebooks to work by ssh to Arnes.
