@@ -1,45 +1,89 @@
-# README #
+# From Cell Towers to Traffic: Transport Mode Inference (Cellular)
 
-## About this repository ##
+This repository contains code and assets for the FRI Data Science Project Competition 2025 project:
+**“From Cell Towers to Traffic: Harnessing Cellular Network Data for Transport Modeling in Slovenia.”**
 
-This is the repository that you will use at the starting point for the FRI Data Science Project Competition. In this readme file you will find short instructions for the most important tasks that are ahead of you. A copy of this content can be found in `instructions.md`, meaning that you should replace the contents of this README file with something meaningful for your project (e.g. a description of your project, versioning, etc.).
+---
 
-## Branching ##
+## 📁 Repository Structure
+/
+├── bibliography/
+│ └── (Citation files)
+│
+├── journal/
+│ └── (Draft manuscripts, extended write-ups)
+│
+├── presentation/
+│ └── (Slide decks, presentation assets)
+│
+├── report/
+│ └── (Final PDF report, figures, appendices)
+│
+├── src/
+│ ├── intermediate_results/
+│ │ └── (Generated Parquet/CSV files)
+│ │
+│ ├── legacy/
+│ │ └── (Older notebooks/scripts)
+│ │
+│ ├── Binning_sequential.ipynb
+│ ├── Delivery.ipynb
+│ ├── Sequential.ipynb
+│ ├── TransitionMatrix.ipynb
+│ ├── Visualizations.ipynb
+│ ├── binning_insights.py
+│ ├── run_binning_insights.sh
+│ └── unsupervised_learning.py
+│
+├── .gitignore
+├── LICENSE
+└── README.md
 
-Repository currently has two branches, the `master` branch and the `develop` branch.
 
-The code on the `master` branch should at all times be clean, well commented and stable/working. Meaning that if your advisors or graders want to check the state of the project, they can use the code that is currently on the `master` branch.
+## 🚀 Project Overview
 
-All the coding and writing work should be done on the `develop` branch, or on additional newly created branches. When you reach a milestone in the development, your code is stable and well commented, you should merge the `develop` branch (or any other branches you created) into the `master` branch and the tag the `master` as a new version. Initial tag of the `master` branch is 0.1. Increase the second number for minor/small changes and the first number for major/big changes in the codebase. This way the whole team, along with the advisors and graders will have a complete history and overview of the project's progress.
+**Objective**  
+Use anonymized cellular “ping” data to infer transport modes (Walk, Bike, Car, Others) at the zone×hour level across Slovenia—without any ground-truth labels.
 
-You can do all of the above manually, or you can use git flow. Git flow is a branching model that is commonly used in industry and academia ([https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow), [https://www.youtube.com/watch?v=6LhTe8Mz6jM](https://www.youtube.com/watch?v=6LhTe8Mz6jM)). By using git flow you can use special git flow commands that will ease the process for you. It is even integrated into most popular git GUIs, e.g. Sourcetree ([https://www.youtube.com/watch?v=z53JJ7P78Vc](https://www.youtube.com/watch?v=z53JJ7P78Vc)) and GitKraken ([https://www.youtube.com/watch?v=eTOgjQ9o4vQ](https://www.youtube.com/watch?v=eTOgjQ9o4vQ)).
+**Pipeline Summary**  
+1. **Denoising (external)**  
+   - Remove fallback pings near towers, duplicate coordinates  
+   - Apply Yu Zheng’s speed/angle/time heuristics  
+   - Sliding-window median filter  
+   - Drop devices with <3 valid pings  
 
-## Folder structure ##
+2. **Spatial Zoning & Temporal Binning** (`Binning_sequential.ipynb`)  
+   - Assign each ping to a polygonal grid zone (`zone_id`)  
+   - Assign each ping to an hourly bin (`time_bin` ∈ 0–23)  
+   - Output: `binned_pings` (zone×hour tags)
 
-There are several subfolders in the repository:
+3. **Feature Extraction** (`binning_insights.py` + `run_binning_insights.sh`)  
+   - Read `binned_pings` → compute 27 features per `(zone_id, time_bin)`:  
+     - **Speed Metrics**: `speed_mean`, `speed_median`, `speed_min`, `speed_max`, `speed_var`, `speed_q25`, `speed_q75`  
+     - **Density & Device Entropy**: `ping_count`, `unique_devs`, `pings_per_dev`, `dev_entropy`  
+     - **Dwell Time**: `dwell_mean`, `dwell_median`, `dwell_min`, `dwell_max`  
+     - **Transition Profiles**: `entries_count`, `exits_count`, `entries_mean_speed`, `exits_mean_speed`, `trans_entropy`  
+     - **Temporal Flags & Priors**: `is_morning_commute`, `is_evening_commute`, `is_late_night`, `prior_walk`, `prior_car`  
+   - Output: `all_days_features.parquet` (~22 000 rows × 27 columns)
 
-* the source folder (`/src`),
-* the journal folder (`/journal`),
-* the interim report folder (`/interim_report`),
-* the final report folder (`/final_report`),
-* and the presentation folder (`/presentation`).
+4. **Unsupervised Mode Inference** (`unsupervised_learning.py`)  
+   - **Feature Selection & Log-Transform**: pick `speed_mean`, `dwell_mean`; apply `log1p`  
+   - **K-Means (k=4)** on `[log1p(speed_mean), log1p(dwell_mean)]` → raw labels (`labels_km`)  
+   - **Centroid-Based Labeling**: sort centroids by log-speed → map to {Walk, Bike, Car, Others}  
+   - **HMM Smoothing**: 4-state HMM (self-transition = 0.9, identity emissions) → smoothed labels (`mode_hmm`)  
+   - Save: raw/smoothed mode CSVs + mode share plots (SVG)
 
-### The source folder ###
+5. **Visualization & Analysis** (`Visualizations.ipynb`, `TransitionMatrix.ipynb`)  
+   - Plot global mode shares (raw vs. smoothed)  
+   - Map spectral clustering of OD flows (commuting basins)  
+   - Example zone×hour mode timelines
 
-All your source code should go into this folder. How you structure things (e.g. via subfolders) inside there is completely up to you.
+---
 
-### The journal folder ###
+## ⚙️ Quick Setup
 
-In this folder you will find a template journal file. Replace John Doe's name and surname with your own. If you are part of a team, each student should have his own journal file, so make a copy of the template journal file and rename it appropriately. Inside the journal file are some example entries into the journal. Every time you do something, be it watching tutorials, reading literature, or coding, make a journal entry and describe in a few sentences what exactly you did or what you learnt.
+1. **Clone the repository**  
+   ```bash
+   git clone https://github.com/yourusername/modes_of_transportation_ds.git
+   cd modes_of_transportation_ds
 
-### The interim report folder ###
-
-In this folder you can find the LaTeX template for both reports. You will write the report by using the `report.tex` file. In this file you can initially find examples of several commonly used report elements (e.g. tables, figures, lists, equations ...). When writing your report replace these contents with your own. The interim report should not be longer than two pages.
-
-### The final report folder ###
-
-To write the final report copy the interim report files from the interim report folder to the final report folder and change the Archive parameter to the correct version (you can find this on the top of the .tex file under the article information section). This way you will be able to upgrade your interim report into the final report. The final report should not be longer than four pages.
-
-### The presentation folder ###
-
-Put the document containing your final presentation into this folder.
