@@ -18,8 +18,7 @@ This repository contains code and assets for the FRI Data Science Project Compet
 ├── report/
 │   └── (Final PDF report, figures, appendices)
 ├── src/
-│   ├── intermediate_results/
-│   │   └── (Generated Parquet/CSV files)
+│
 │   ├── legacy/
 │   │   └── (Older notebooks/scripts)
 │   ├── Binning_sequential.ipynb
